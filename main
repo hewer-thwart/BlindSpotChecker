@@ -1,0 +1,113 @@
+#include <Servo.h>
+
+Servo myservo;
+
+const int radarIn = 2;   // Define the interrupt PIN is 0, that is, digital pins 2
+const int radarOut = 3;  // Result pin for radar
+
+const int trigPin = 9;  // TRIG pin
+const int echoPin = 8;  // ECHO pin
+
+int x = 0;
+int counter = 0;
+int ultraCounter = 0;
+int radarArray[30] = {};
+int flip = 1;
+int j = 45;
+
+
+int radarlogic() {
+  for (int i = 0; i < sizeof(radarArray) / sizeof(int); i++) {
+    if (radarArray[i] != 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void servoCheck(int distance) {
+  // put your main code here, to run repeatedly:
+  for (int f = 0; f < 180; f++) {
+    distance = pulseIn(echoPin, HIGH) * 0.017;
+    if (distance < 20) {
+      break;
+    }
+    if (j < 45 || j > 135) {
+      flip *= -1;
+    }
+    myservo.write(j);
+    delay(10);
+    j += flip;
+  }
+}
+
+void ultraSonicLogic() {
+
+
+  // int distance = pulseIn(echoPin, HIGH) * 0.017;  // In cm
+  // if (ultraCounter > 1){
+  //   ultraCounter = 0;
+  //   digitalWrite(radarOut, LOW);
+  //   return;
+  int rotationTimes = 0;
+  for (int f = 0; f < 180; f++) {
+    digitalWrite(trigPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPin, LOW);
+    int distance = pulseIn(echoPin, HIGH) * 0.017;
+    while (distance < 20) {
+      digitalWrite(radarOut, HIGH);
+      for (int i = 0; i < sizeof(radarArray) / sizeof(int); i++) {
+        radarArray[i] = 0;
+      }
+      return;
+    }
+    if (j < 45 || j > 135) {
+      flip *= -1;
+      rotationTimes += 1
+    }
+    myservo.write(j);
+    delay(10);
+    j += flip;
+    if (rotationTimes > 2) {
+      return;
+    }
+  }
+  // if (distance < 20) {
+  //   digitalWrite(radarOut, HIGH);
+  // } else {
+  //   digitalWrite(radarOut, LOW);
+  //   servoCheck(distance);
+  //   ultraCounter ++;
+  //   break;
+  // }
+}
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(radarOut, OUTPUT);
+  pinMode(radarIn, INPUT);
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  attachInterrupt(digitalPinToInterrupt(radarIn), stateChange, FALLING);
+  myservo.attach(7);
+}
+
+void loop() {
+  Serial.print(radarlogic());
+  counter += 1;
+  radarArray[counter] = 0;
+  if (counter == sizeof(radarArray) / sizeof(int)) {
+    counter = 0;
+  }
+  digitalWrite(radarOut, LOW);
+  if (radarlogic() == true) {
+    ultraSonicLogic();
+  }
+}
+
+void stateChange() {
+
+  x++;
+  radarArray[counter] = 1;
+}
